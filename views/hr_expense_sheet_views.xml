@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_hr_expense_sheet_form_cash_tracking" model="ir.ui.view">
+        <field name="name">hr.expense.sheet.form.cash.tracking</field>
+        <field name="model">hr.expense.sheet</field>
+        <field name="inherit_id" ref="hr_expense.view_hr_expense_sheet_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button
+                    name="action_request_cash_tracking_validation"
+                    type="object"
+                    string="Request Validation"
+                    class="oe_highlight"
+                    attrs="{'invisible': [('state', '!=', 'draft')]}"
+                />
+                <button
+                    name="action_open_return_reason_wizard"
+                    type="object"
+                    string="Return"
+                    attrs="{'invisible': [('state', 'not in', ['submit', 'approve', 'post'])]}"
+                />
+                <button
+                    name="%(action_expense_cash_summary_xlsx_wizard)d"
+                    type="action"
+                    string="Summary XLSX"
+                    groups="autoinfo_hr_expense_cash_tracking.group_expense_cash_accounting_reviewer,autoinfo_hr_expense_cash_tracking.group_expense_cash_reimbursement_manager"
+                />
+                <button
+                    name="action_mark_cash_reimbursed"
+                    type="object"
+                    string="Mark Cash Reimbursed"
+                    groups="autoinfo_hr_expense_cash_tracking.group_expense_cash_reimbursement_manager"
+                    attrs="{'invisible': [('cash_tracking_state', '=', 'cash_reimbursed')]}"
+                />
+            </xpath>
+            <xpath expr="//sheet/group" position="after">
+                <group string="Cash Reimbursement">
+                    <field name="returned_for_resubmission" invisible="1"/>
+                    <field name="reimbursement_method"/>
+                    <field name="cash_tracking_state" readonly="1"/>
+                    <field name="cash_paid_date" readonly="1"/>
+                    <field name="cash_paid_by" readonly="1"/>
+                    <field name="cash_reference"/>
+                    <field name="cash_note"/>
+                    <field
+                        name="return_reason"
+                        readonly="1"
+                        attrs="{'invisible': [('returned_for_resubmission', '=', False)]}"
+                    />
+                    <field name="returned_tier" readonly="1"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

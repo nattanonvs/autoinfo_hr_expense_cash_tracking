@@ -1,0 +1,52 @@
+<odoo>
+    <record id="view_expense_approval_delegate_tree" model="ir.ui.view">
+        <field name="name">autoinfo.expense.approval.delegate.tree</field>
+        <field name="model">autoinfo.expense.approval.delegate</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="employee_id"/>
+                <field name="approver_user_id"/>
+                <field name="delegate_user_id"/>
+                <field name="date_start"/>
+                <field name="date_end"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_expense_approval_delegate_form" model="ir.ui.view">
+        <field name="name">autoinfo.expense.approval.delegate.form</field>
+        <field name="model">autoinfo.expense.approval.delegate</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="employee_id"/>
+                        <field name="approver_user_id"/>
+                        <field name="delegate_user_id"/>
+                    </group>
+                    <group>
+                        <field name="date_start"/>
+                        <field name="date_end"/>
+                        <field name="active"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_expense_approval_delegate" model="ir.actions.act_window">
+        <field name="name">Approval Delegates</field>
+        <field name="res_model">autoinfo.expense.approval.delegate</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem
+        id="menu_expense_approval_delegate"
+        name="Approval Delegates"
+        parent="hr_expense.menu_hr_expense_configuration"
+        action="action_expense_approval_delegate"
+        sequence="31"
+        groups="hr_expense.group_hr_expense_manager"
+    />
+</odoo>

@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_expense_approval_delegate_manager,access.expense.approval.delegate.manager,model_autoinfo_expense_approval_delegate,hr_expense.group_hr_expense_manager,1,1,1,1
+access_expense_approval_role_manager,access.expense.approval.role.manager,model_autoinfo_expense_approval_role,hr_expense.group_hr_expense_manager,1,1,1,1
+access_expense_category_manager,access.expense.category.manager,model_autoinfo_expense_category,hr_expense.group_hr_expense_manager,1,1,1,1
+access_expense_return_reason_wizard_user,access.expense.return.reason.wizard.user,model_expense_return_reason_wizard,hr_expense.group_hr_expense_user,1,1,1,1
+access_expense_cash_summary_xlsx_wizard_user,access.expense.cash.summary.xlsx.wizard.user,model_expense_cash_summary_xlsx_wizard,base.group_user,1,1,1,1

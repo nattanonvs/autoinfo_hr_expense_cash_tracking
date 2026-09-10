@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo noupdate="1">
+    <record id="mail_template_expense_cash_returned" model="mail.template">
+        <field name="name">Expense Cash Tracking Returned</field>
+        <field name="model_id" ref="hr_expense.model_hr_expense_sheet"/>
+        <field name="subject">Expense Sheet Returned: {{ object.name }}</field>
+        <field name="email_from">{{ user.email_formatted or '' }}</field>
+        <field name="body_html" type="html">
+            <div>
+                <p>Expense Sheet <strong>{{ object.name }}</strong> was returned for resubmission.</p>
+                <p>Reason: {{ object.return_reason or '' }}</p>
+            </div>
+        </field>
+    </record>
+</odoo>

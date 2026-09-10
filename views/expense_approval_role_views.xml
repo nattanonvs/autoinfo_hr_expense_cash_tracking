@@ -1,0 +1,46 @@
+<odoo>
+    <record id="view_expense_approval_role_tree" model="ir.ui.view">
+        <field name="name">autoinfo.expense.approval.role.tree</field>
+        <field name="model">autoinfo.expense.approval.role</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="group_id"/>
+                <field name="company_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_expense_approval_role_form" model="ir.ui.view">
+        <field name="name">autoinfo.expense.approval.role.form</field>
+        <field name="model">autoinfo.expense.approval.role</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="code"/>
+                        <field name="group_id"/>
+                        <field name="company_id"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_expense_approval_role" model="ir.actions.act_window">
+        <field name="name">Approval Roles</field>
+        <field name="res_model">autoinfo.expense.approval.role</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem
+        id="menu_expense_approval_role"
+        name="Approval Roles"
+        parent="hr_expense.menu_hr_expense_configuration"
+        action="action_expense_approval_role"
+        sequence="30"
+        groups="hr_expense.group_hr_expense_manager"
+    />
+</odoo>

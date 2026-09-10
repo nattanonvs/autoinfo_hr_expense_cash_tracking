@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_expense_category_tree" model="ir.ui.view">
+        <field name="name">autoinfo.expense.category.tree</field>
+        <field name="model">autoinfo.expense.category</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="product_id"/>
+                <field name="company_id"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_expense_category_form" model="ir.ui.view">
+        <field name="name">autoinfo.expense.category.form</field>
+        <field name="model">autoinfo.expense.category</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="code"/>
+                        <field name="product_id"/>
+                        <field name="company_id"/>
+                        <field name="active"/>
+                        <field name="note"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_expense_category" model="ir.actions.act_window">
+        <field name="name">Expense Categories</field>
+        <field name="res_model">autoinfo.expense.category</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem
+        id="menu_expense_category"
+        name="Expense Categories"
+        parent="hr_expense.menu_hr_expense_configuration"
+        action="action_expense_category"
+        sequence="32"
+        groups="hr_expense.group_hr_expense_manager"
+    />
+</odoo>

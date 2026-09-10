@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_expense_cash_summary_xlsx_wizard_form" model="ir.ui.view">
+        <field name="name">expense.cash.summary.xlsx.wizard.form</field>
+        <field name="model">expense.cash.summary.xlsx.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Expense Cash Summary XLSX">
+                <group>
+                    <field name="company_id"/>
+                    <field name="date_from"/>
+                    <field name="date_to"/>
+                </group>
+                <footer>
+                    <button
+                        name="action_export_xlsx"
+                        type="object"
+                        string="Export XLSX"
+                        class="btn-primary"
+                    />
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

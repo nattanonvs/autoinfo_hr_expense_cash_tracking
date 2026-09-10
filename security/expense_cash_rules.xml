@@ -1,0 +1,21 @@
+<odoo>
+    <record id="rule_expense_sheet_accounting_all" model="ir.rule">
+        <field name="name">Expense Sheet Accounting All</field>
+        <field name="model_id" ref="hr_expense.model_hr_expense_sheet"/>
+        <field
+            name="groups"
+            eval="[(4, ref('autoinfo_hr_expense_cash_tracking.group_expense_cash_accounting_reviewer'))]"
+        />
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_expense_sheet_executive_all" model="ir.rule">
+        <field name="name">Expense Sheet Executive All</field>
+        <field name="model_id" ref="hr_expense.model_hr_expense_sheet"/>
+        <field
+            name="groups"
+            eval="[(4, ref('autoinfo_hr_expense_cash_tracking.group_expense_cash_executive_viewer'))]"
+        />
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+</odoo>

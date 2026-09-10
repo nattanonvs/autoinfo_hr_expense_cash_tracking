@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="action_expense_cash_summary_xlsx_wizard" model="ir.actions.act_window">
+        <field name="name">Expense Cash Summary XLSX</field>
+        <field name="res_model">expense.cash.summary.xlsx.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_expense_cash_summary_xlsx_wizard_form"/>
+        <field name="target">new</field>
+    </record>
+    <record id="action_expense_cash_detail_xlsx" model="ir.actions.report">
+        <field name="name">Expense Cash Reimbursement Detail</field>
+        <field name="model">hr.expense.sheet</field>
+        <field name="report_type">xlsx</field>
+        <field name="report_name">autoinfo_hr_expense_cash_tracking.expense_cash_detail_xlsx</field>
+        <field name="report_file">expense_cash_detail</field>
+        <field name="binding_model_id" ref="hr_expense.model_hr_expense_sheet"/>
+        <field name="binding_type">report</field>
+    </record>
+    <record id="action_expense_cash_summary_xlsx" model="ir.actions.report">
+        <field name="name">Expense Cash Reimbursement Summary</field>
+        <field name="model">expense.cash.summary.xlsx.wizard</field>
+        <field name="report_type">xlsx</field>
+        <field name="report_name">autoinfo_hr_expense_cash_tracking.expense_cash_summary_xlsx</field>
+        <field name="report_file">expense_cash_summary</field>
+    </record>
+</odoo>
