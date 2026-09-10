@@ -2,6 +2,8 @@
 
 Employee-friendly Odoo 15 expense cash tracking with approval flow, Expense Category mapping, return/resubmission, and XLSX exports.
 
+โมดูล Odoo 15 สำหรับติดตามการคืนเงินสดค่าใช้จ่าย พร้อมสายอนุมัติ, Expense Category ที่ใช้ง่ายสำหรับพนักงาน, การตีกลับ/ส่งใหม่ และการส่งออก XLSX.
+
 ## โมดูลนี้คืออะไร
 
 โมดูลนี้ขยาย `hr_expense` บน Odoo 15 สำหรับงานเบิกค่าใช้จ่ายที่พนักงานสำรองจ่ายเองและต้องการติดตามการคืนเงินสดอย่างเป็นขั้นตอน
