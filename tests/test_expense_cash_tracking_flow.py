@@ -74,6 +74,19 @@ class TestExpenseCashTrackingFlow(TransactionCase):
                 "company_id": cls.env.company.id,
             }
         )
+        cls.expense_journal = cls.env["account.journal"].search(
+            [("company_id", "=", cls.env.company.id)],
+            limit=1,
+        )
+        if not cls.expense_journal:
+            cls.expense_journal = cls.env["account.journal"].create(
+                {
+                    "name": "Expense Cash Tracking Journal",
+                    "code": "ECTJ",
+                    "type": "general",
+                    "company_id": cls.env.company.id,
+                }
+            )
         cls.env.user.groups_id |= cls.env.ref("hr_expense.group_hr_expense_user")
         cls.sheet = cls.env["hr.expense.sheet"].create(
             {
@@ -302,7 +315,11 @@ class TestExpenseCashTrackingFlow(TransactionCase):
 
     def test_posted_sheet_cannot_be_reset_to_draft(self):
         expense = self._create_expense()
-        sheet = self._make_sheet(expense, state="post")
+        sheet = self._make_sheet(
+            expense,
+            state="post",
+            journal_id=self.expense_journal.id,
+        )
 
         with self.assertRaises(UserError):
             sheet.with_user(self.manager_user).action_reset_to_draft_by_manager()
