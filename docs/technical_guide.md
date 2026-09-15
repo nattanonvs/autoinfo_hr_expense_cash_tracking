@@ -17,6 +17,32 @@ cd /var/odoo/odoo15
 sudo systemctl start odoo15
 ```
 
+## การรัน test แบบใช้ซ้ำ
+
+ถ้าทำงานบนเครื่อง Windows ชุดพัฒนานี้ ให้ใช้สคริปต์ `scripts/run_odoo_tests.ps1`
+
+ตัวอย่าง:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run_odoo_tests.ps1 -TagSet flow
+powershell -ExecutionPolicy Bypass -File .\scripts\run_odoo_tests.ps1 -TagSet security
+powershell -ExecutionPolicy Bypass -File .\scripts\run_odoo_tests.ps1 -TagSet xlsx
+powershell -ExecutionPolicy Bypass -File .\scripts\run_odoo_tests.ps1 -TagSet all
+```
+
+ความหมาย:
+
+1. `flow` ใช้เช็ก flow หลักของ cash tracking และ reset to draft
+2. `security` ใช้เช็กสิทธิ์การมองเห็นเอกสาร
+3. `xlsx` ใช้เช็กการ export Excel
+4. `all` ใช้ติดตั้งโมดูลแล้วรัน test ของโมดูลทั้งหมดในรอบเดียว
+
+หมายเหตุ:
+
+- สคริปต์นี้ใช้ Odoo runtime ที่ `C:\odoo\odoo-15.0`
+- สคริปต์จะสร้างและลบฐานทดสอบให้อัตโนมัติ
+- ถ้าต้องการเก็บฐานไว้ตรวจต่อ ให้เพิ่ม `-KeepDb`
+
 ## สถาปัตยกรรมโดยย่อ
 
 โมดูลนี้ขยาย `hr.expense` และ `hr.expense.sheet` เพื่อรองรับงานคืนเงินสด, validation หลายขั้น, Excel export และ UX แบบง่ายขึ้นสำหรับพนักงานทั่วไป
