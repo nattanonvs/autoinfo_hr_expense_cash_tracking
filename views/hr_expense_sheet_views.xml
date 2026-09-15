@@ -20,6 +20,13 @@
                     attrs="{'invisible': [('state', 'not in', ['submit', 'approve', 'post'])]}"
                 />
                 <button
+                    name="action_reset_to_draft_by_manager"
+                    type="object"
+                    string="Reset to Draft"
+                    groups="hr_expense.group_hr_expense_manager"
+                    attrs="{'invisible': ['|', ('state', 'not in', ['submit', 'approve']), ('cash_tracking_state', '=', 'cash_reimbursed')]}"
+                />
+                <button
                     name="%(action_expense_cash_summary_xlsx_wizard)d"
                     type="action"
                     string="Summary XLSX"

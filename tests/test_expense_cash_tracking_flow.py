@@ -1,3 +1,5 @@
+from lxml import etree
+
 from odoo import fields
 from odoo.tests import tagged
 from odoo.exceptions import UserError
@@ -31,6 +33,7 @@ class TestExpenseCashTrackingFlow(TransactionCase):
         cls.manager_user = cls._create_user(
             "Expense Cash Manager User",
             "expense_cash_manager",
+            "hr_expense.group_hr_expense_manager",
             "hr_expense.group_hr_expense_user",
             "hr_expense.group_hr_expense_team_approver",
         )
@@ -119,6 +122,13 @@ class TestExpenseCashTrackingFlow(TransactionCase):
         }
         values.update(overrides)
         return self.env["hr.expense.sheet"].create(values)
+
+    def _assert_user_cannot_reset_sheet_to_draft(self, user):
+        expense = self._create_expense()
+        sheet = self._make_sheet(expense, state="submit")
+
+        with self.assertRaises(UserError):
+            sheet.with_user(user).action_reset_to_draft_by_manager()
 
     def test_submit_requires_analytic_account(self):
         expense = self._create_expense(payment_mode="own_account", analytic_account=False)
@@ -216,6 +226,111 @@ class TestExpenseCashTrackingFlow(TransactionCase):
         self.assertFalse(sheet.returned_tier)
         self.assertTrue(sheet.review_ids)
 
+    def test_manager_can_reset_sheet_to_draft_and_clear_tracking_fields(self):
+        expense = self._create_expense()
+        sheet = self._make_sheet(expense, state="submit")
+        sheet.write(
+            {
+                "returned_for_resubmission": True,
+                "return_reason": "Wrong amount",
+                "returned_by": self.env.user.id,
+                "returned_on": fields.Datetime.now(),
+                "returned_tier": "accounting_review",
+                "cash_tracking_state": "waiting_cash_reimbursement",
+                "cash_paid_date": fields.Date.today(),
+                "cash_paid_by": self.finance_cash_user.id,
+                "cash_reference": "PC-001",
+                "cash_note": "Temporary note",
+            }
+        )
+
+        sheet.with_user(self.manager_user).action_reset_to_draft_by_manager()
+        sheet.invalidate_cache()
+
+        self.assertEqual(sheet.state, "draft")
+        self.assertFalse(sheet.returned_for_resubmission)
+        self.assertFalse(sheet.return_reason)
+        self.assertFalse(sheet.returned_by)
+        self.assertFalse(sheet.returned_on)
+        self.assertFalse(sheet.returned_tier)
+        self.assertEqual(sheet.cash_tracking_state, "not_applicable")
+        self.assertFalse(sheet.cash_paid_date)
+        self.assertFalse(sheet.cash_paid_by)
+        self.assertFalse(sheet.cash_reference)
+        self.assertFalse(sheet.cash_note)
+        self.assertTrue(
+            any(
+                "Expense sheet has been reset to draft by manager." in body
+                for body in sheet.message_ids.mapped("body")
+            )
+        )
+
+    def test_manager_reset_to_draft_clears_previous_tier_reviews(self):
+        expense = self._create_expense()
+        sheet = self._make_sheet(expense)
+
+        sheet.request_validation()
+        sheet.invalidate_cache()
+        self.assertTrue(sheet.review_ids)
+        sheet.review_ids.write({"status": "approved"})
+        sheet.invalidate_cache()
+        self.assertTrue(sheet.validated)
+        sheet.write({"state": "submit"})
+
+        sheet.with_user(self.manager_user).action_reset_to_draft_by_manager()
+        sheet.invalidate_cache()
+
+        self.assertEqual(sheet.state, "draft")
+        self.assertFalse(sheet.review_ids)
+
+        sheet.action_request_cash_tracking_validation()
+        sheet.invalidate_cache()
+
+        self.assertTrue(sheet.review_ids)
+
+    def test_regular_user_cannot_reset_sheet_to_draft(self):
+        self._assert_user_cannot_reset_sheet_to_draft(self.employee_user)
+
+    def test_delegate_user_cannot_reset_sheet_to_draft(self):
+        self._assert_user_cannot_reset_sheet_to_draft(self.delegate_user)
+
+    def test_accounting_user_cannot_reset_sheet_to_draft(self):
+        self._assert_user_cannot_reset_sheet_to_draft(self.accounting_user)
+
+    def test_finance_cash_user_cannot_reset_sheet_to_draft(self):
+        self._assert_user_cannot_reset_sheet_to_draft(self.finance_cash_user)
+
+    def test_posted_sheet_cannot_be_reset_to_draft(self):
+        expense = self._create_expense()
+        sheet = self._make_sheet(expense, state="post")
+
+        with self.assertRaises(UserError):
+            sheet.with_user(self.manager_user).action_reset_to_draft_by_manager()
+
+    def test_cash_reimbursed_sheet_cannot_be_reset_to_draft(self):
+        expense = self._create_expense()
+        sheet = self._make_sheet(
+            expense,
+            state="approve",
+            cash_tracking_state="cash_reimbursed",
+        )
+
+        with self.assertRaises(UserError):
+            sheet.with_user(self.manager_user).action_reset_to_draft_by_manager()
+
+    def test_draft_sheet_cannot_be_reset_to_draft(self):
+        expense = self._create_expense()
+        sheet = self._make_sheet(
+            expense,
+            state="draft",
+            returned_for_resubmission=True,
+            return_reason="Returned for correction",
+            returned_tier="manager_review",
+        )
+
+        with self.assertRaises(UserError):
+            sheet.with_user(self.manager_user).action_reset_to_draft_by_manager()
+
     def test_return_wizard_action_contains_sheet_context(self):
         expense = self._create_expense()
         sheet = self._make_sheet(expense)
@@ -265,6 +380,24 @@ class TestExpenseCashTrackingFlow(TransactionCase):
         self.assertIn('name="action_open_return_reason_wizard"', view.arch_db)
         self.assertIn('name="action_mark_cash_reimbursed"', view.arch_db)
         self.assertIn('name="cash_tracking_state"', view.arch_db)
+
+    def test_sheet_form_view_contains_reset_to_draft_button_for_manager(self):
+        view = self.env.ref(
+            "autoinfo_hr_expense_cash_tracking.view_hr_expense_sheet_form_cash_tracking"
+        )
+        arch = view.read_combined(["arch"])["arch"]
+        root = etree.fromstring(arch.encode())
+        buttons = root.xpath(".//button[@name='action_reset_to_draft_by_manager']")
+
+        self.assertEqual(len(buttons), 1)
+        self.assertEqual(
+            buttons[0].get("groups"),
+            "hr_expense.group_hr_expense_manager",
+        )
+        self.assertEqual(buttons[0].get("string"), "Reset to Draft")
+        attrs = buttons[0].get("attrs") or ""
+        self.assertIn("'state', 'not in', ['submit', 'approve']", attrs)
+        self.assertIn("'cash_tracking_state', '=', 'cash_reimbursed'", attrs)
 
     def test_mark_cash_reimbursed_sets_audit_fields_and_posts_notification(self):
         expense = self._create_expense()

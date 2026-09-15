@@ -1,9 +1,5 @@
 # AUTO-INFO : HR Expense Cash Tracking
 
-Employee-friendly Odoo 15 expense cash tracking with approval flow, Expense Category mapping, return/resubmission, and XLSX exports.
-
-โมดูล Odoo 15 สำหรับติดตามการคืนเงินสดค่าใช้จ่าย พร้อมสายอนุมัติ, Expense Category ที่ใช้ง่ายสำหรับพนักงาน, การตีกลับ/ส่งใหม่ และการส่งออก XLSX.
-
 ## โมดูลนี้คืออะไร
 
 โมดูลนี้ขยาย `hr_expense` บน Odoo 15 สำหรับงานเบิกค่าใช้จ่ายที่พนักงานสำรองจ่ายเองและต้องการติดตามการคืนเงินสดอย่างเป็นขั้นตอน
@@ -20,42 +16,8 @@ Employee-friendly Odoo 15 expense cash tracking with approval flow, Expense Cate
 - เพิ่ม `Expense Category` สำหรับพนักงาน และ map ไป `product` อัตโนมัติ
 - ซ่อน `product_id` จากผู้ใช้พนักงานทั่วไป แต่ยังให้บัญชีและผู้จัดการเห็นข้อมูลจริง
 - บล็อกการ submit ถ้า mapping ของ `Expense Category` ไม่ครบหรือมีการเปลี่ยน `product` ไม่ตรง mapping
+- ผู้จัดการ Expense สามารถกด `Reset to Draft` เพื่อดึงเอกสารจากรอบ `submit` หรือ `approve` กลับมาแก้ได้
 - ส่งออก Excel ได้ทั้งแบบรายใบและสรุปหลายใบ
-
-## เริ่มใช้งานเร็ว
-
-### สำหรับพนักงานผู้ส่งเบิก
-
-1. ไปที่เมนู `Expenses`
-2. กดสร้างรายการใหม่
-3. กรอกชื่อรายการ วันที่ จำนวนเงิน และรายละเอียด
-4. เลือก `Expense Category`
-5. เลือก `Analytic Account`
-6. แนบหลักฐานถ้ามี
-7. บันทึก แล้วรวมเป็น `Expense Sheet`
-8. กดส่งขออนุมัติ
-
-### สำหรับแอดมินหรือผู้จัดการ Expense
-
-1. ไปที่ `Expenses > Configuration > Expense Categories`
-2. สร้างหมวดค่าใช้จ่าย
-3. ใส่ชื่อหมวดที่พนักงานเข้าใจง่าย
-4. ผูกหมวดนั้นเข้ากับ `Product` จริง
-5. ทดสอบสร้าง `Expense` 1 รายการก่อนเปิดใช้จริง
-
-### สำหรับบัญชีหรือผู้ตรวจ
-
-1. เปิด `Expense` หรือ `Expense Sheet`
-2. ตรวจว่า `Expense Category` ตรงกับ `Product`
-3. ตรวจเอกสารและข้อมูลประกอบ
-4. อนุมัติหรือส่งกลับเพื่อแก้ไข
-
-## คู่มือแบบละเอียด
-
-- ถ้าต้องการคู่มือใช้งานทีละขั้นสำหรับพนักงานและทีมตรวจสอบ ให้เปิด `docs/user_guide.md`
-- ถ้าต้องการรายละเอียดเชิงเทคนิคของ model, view, validation และ test ให้เปิด `docs/technical_guide.md`
-- ถ้าต้องการขั้นตอนติดตั้งและอัปเกรด ให้เปิด `docs/installation_guide.md`
-- ถ้าต้องการแนวทางแก้ปัญหา ให้เปิด `docs/troubleshooting.md`
 
 ## ขอบเขตการทำงาน
 
@@ -106,12 +68,6 @@ sudo systemctl start odoo15
 3. ผูกแต่ละหมวดเข้ากับ `product` จริงที่บัญชีต้องการใช้
 4. ทดสอบสร้าง `Expense` โดยเลือกหมวดแทนการเลือก `product` เอง
 
-คำแนะนำ:
-
-- ตั้งชื่อหมวดให้พนักงานอ่านแล้วเข้าใจทันที เช่น `ค่าน้ำมัน`, `ค่าเดินทาง`, `ค่าอุปกรณ์สำนักงาน`
-- ไม่ควรใช้ชื่อหมวดที่เป็นรหัสบัญชีหรือคำเทคนิคมากเกินไป
-- ถ้าเปลี่ยน `product` ของหมวดใด ควรทดสอบรายการเบิกใหม่ก่อนใช้งานจริง
-
 ## เอกสารประกอบ
 
 - `docs/user_guide.md`: ขั้นตอนใช้งานของพนักงาน บัญชี และการเงิน
@@ -134,6 +90,10 @@ AI Coding Assistant: TRAE SOLO / MICROSOFT 365 COPILOT - Utilized to support cod
 
 ## Changelog Summary
 
+- `2026-09-15`
+- เพิ่มปุ่ม `Reset to Draft` สำหรับ `Expense Manager`
+- บล็อกการ reset ถ้าเอกสารเป็น `draft`, `post` หรือคืนเงินแล้ว
+- ล้างข้อมูลรอบตีกลับและข้อมูลคืนเงินสดเดิม พร้อมเปิดให้ขอ `Tier Validation` รอบใหม่
 - `2026-09-10`
 - เพิ่ม `Expense Category` และ simplified employee form ตามสถานะโค้ดจริง
 - ปรับ README และคู่มือให้สะท้อนสิทธิ์การมองเห็นและ validation ปัจจุบัน

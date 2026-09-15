@@ -17,22 +17,6 @@ cd /var/odoo/odoo15
 sudo systemctl start odoo15
 ```
 
-## เอกสารที่เกี่ยวข้อง
-
-- `README.md` ใช้สำหรับอ่านภาพรวมแบบเร็ว
-- `docs/user_guide.md` ใช้เป็นคู่มือใช้งานแบบละเอียดภาษาไทย
-- `docs/installation_guide.md` ใช้สำหรับติดตั้งและอัปเกรด
-- `docs/troubleshooting.md` ใช้สำหรับแก้ปัญหาหน้างาน
-
-ถ้าต้องสอนผู้ใช้จริง
-
-ให้เริ่มจาก `docs/user_guide.md` ก่อน
-
-เพราะไฟล์นั้นแยกบทบาทไว้ชัดเจนระหว่าง:
-
-- พนักงานผู้ส่งเบิก
-- แอดมิน / หัวหน้า / บัญชี / การเงิน
-
 ## สถาปัตยกรรมโดยย่อ
 
 โมดูลนี้ขยาย `hr.expense` และ `hr.expense.sheet` เพื่อรองรับงานคืนเงินสด, validation หลายขั้น, Excel export และ UX แบบง่ายขึ้นสำหรับพนักงานทั่วไป
@@ -101,6 +85,7 @@ logic ที่เกี่ยวข้อง:
 - `_check_all_lines_have_valid_expense_category_mapping()`
 - `action_submit_sheet()` เรียก validation ของ analytic account และ category mapping ก่อนส่ง
 - `action_request_cash_tracking_validation()` reset รอบเอกสารถูกตีกลับ
+- `action_reset_to_draft_by_manager()` ให้ผู้จัดการดึงเอกสารจาก `submit` หรือ `approve` กลับไป `draft`
 - `action_mark_cash_reimbursed()` บันทึกสถานะคืนเงินสดและ audit fields
 
 ## พฤติกรรมของฟอร์มตามสิทธิ์
@@ -121,6 +106,7 @@ logic ที่เกี่ยวข้อง:
 1. ถ้าไม่มี `Analytic Account` บน expense line ใด line หนึ่ง จะ submit sheet ไม่ได้
 2. ถ้าเลือก `Expense Category` แล้วไม่มี `product_id` หรือ `product_id` ไม่ตรงกับ mapping จะ submit sheet ไม่ได้
 3. ถ้า Tier Validation ยังไม่ครบ จะ approve/post ต่อไม่ได้
+4. ปุ่ม `Reset to Draft` ใช้ได้เฉพาะ `Expense Manager` และใช้ได้เฉพาะตอนเอกสารอยู่ที่ `submit` หรือ `approve`
 
 ## Security และเมนู
 
@@ -142,7 +128,7 @@ logic ที่เกี่ยวข้อง:
 - `tests/test_expense_employee_ux.py`
   ครอบคลุม category mapping, visibility ตาม group, config action และ regression เชื่อม UX ใหม่กับ cash tracking default
 - `tests/test_expense_cash_tracking_flow.py`
-  ครอบคลุม analytic account gate, validation gate, return flow, reimbursement และ wizard actions
+  ครอบคลุม analytic account gate, validation gate, return flow, reset to draft, reimbursement และ wizard actions
 - `tests/test_expense_cash_tracking_security.py`
   ครอบคลุม visibility ของ sheet ตามกลุ่มสิทธิ์
 - `tests/test_expense_cash_tracking_xlsx.py`

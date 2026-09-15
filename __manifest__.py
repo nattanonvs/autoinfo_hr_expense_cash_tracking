@@ -1,6 +1,6 @@
 {
     "name": "AUTO-INFO : HR Expense Cash Tracking",
-    "version": "15.0.1.1.0",
+    "version": "15.0.1.2.0",
     "category": "AUTO-INFO : ERP Expenses",
     "summary": "Expense cash reimbursement with Expense Category UX simplification and XLSX exports",
     "author": "Odoo S.A., Dataroot Asia Co., Ltd., The Auto-Info Co., Ltd.",
