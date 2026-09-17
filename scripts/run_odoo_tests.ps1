@@ -41,6 +41,9 @@ $testTags = switch ($TagSet) {
     "flow" { "expense_cash_tracking_flow" }
     "security" { "expense_cash_tracking_security" }
     "xlsx" { "expense_cash_tracking_xlsx" }
+    "all" {
+        "expense_employee_ux,expense_cash_tracking_flow,expense_cash_tracking_security,expense_cash_tracking_xlsx"
+    }
     default { $null }
 }
 

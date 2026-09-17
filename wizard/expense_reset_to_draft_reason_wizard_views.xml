@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_expense_reset_to_draft_reason_wizard_form" model="ir.ui.view">
+        <field name="name">expense.reset.to.draft.reason.wizard.form</field>
+        <field name="model">expense.reset.to.draft.reason.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reset Expense Sheet To Draft">
+                <group>
+                    <field name="sheet_id" readonly="1"/>
+                    <field
+                        name="reason"
+                        placeholder="Explain why this expense sheet must return to draft"
+                    />
+                </group>
+                <div class="alert alert-warning" role="alert">
+                    Resetting to draft clears previous return-cycle data and any cash reimbursement tracking data.
+                </div>
+                <footer>
+                    <button
+                        name="action_confirm"
+                        type="object"
+                        string="Confirm Reset"
+                        class="btn-primary"
+                    />
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

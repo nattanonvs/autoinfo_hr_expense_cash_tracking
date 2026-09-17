@@ -149,8 +149,29 @@ class HrExpenseSheet(models.Model):
             return "accounting_review"
         return "manager_review"
 
+    def _check_return_reason_wizard_allowed(self):
+        for sheet in self:
+            has_return_access = (
+                sheet.user_has_groups("hr_expense.group_hr_expense_manager")
+                or sheet.user_has_groups("hr_expense.group_hr_expense_team_approver")
+                or sheet.user_has_groups(
+                    "autoinfo_hr_expense_cash_tracking.group_expense_cash_accounting_reviewer"
+                )
+            )
+            if not has_return_access:
+                raise UserError(
+                    _("Only expense reviewers can return this expense sheet.")
+                )
+            if sheet.state not in ("submit", "approve", "post"):
+                raise UserError(
+                    _(
+                        "Only submitted, approved, or posted expense sheets can be returned."
+                    )
+                )
+
     def action_open_return_reason_wizard(self, returned_tier=None):
         self.ensure_one()
+        self._check_return_reason_wizard_allowed()
         view = self.env.ref(
             "autoinfo_hr_expense_cash_tracking.view_expense_return_reason_wizard_form"
         )
@@ -166,6 +187,71 @@ class HrExpenseSheet(models.Model):
                 "default_returned_tier": returned_tier
                 or self._get_cash_tracking_return_tier(),
             },
+        }
+
+    def action_open_reset_to_draft_reason_wizard(self):
+        self.ensure_one()
+        self._check_reset_to_draft_by_manager_allowed(check_account_move=False)
+        view = self.env.ref(
+            "autoinfo_hr_expense_cash_tracking.view_expense_reset_to_draft_reason_wizard_form"
+        )
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Reset Expense Sheet To Draft"),
+            "res_model": "expense.reset.to.draft.reason.wizard",
+            "view_mode": "form",
+            "view_id": view.id,
+            "target": "new",
+            "context": {
+                "default_sheet_id": self.id,
+            },
+        }
+
+    def _has_reset_to_draft_account_move(self):
+        self.ensure_one()
+        return bool(self.account_move_id)
+
+    def _check_reset_to_draft_by_manager_allowed(self, check_account_move=True):
+        for sheet in self:
+            if not sheet.user_has_groups("hr_expense.group_hr_expense_manager"):
+                raise UserError(
+                    _("Only expense managers can reset this expense sheet to draft.")
+                )
+            if sheet.state == "draft":
+                raise UserError(_("This expense sheet is already in draft."))
+            if sheet.state not in ("submit", "approve", "post"):
+                raise UserError(
+                    _(
+                        "Only submitted, approved, or safely posted expense sheets can be reset to draft."
+                    )
+                )
+            if (
+                check_account_move
+                and sheet.state == "post"
+                and sheet._has_reset_to_draft_account_move()
+            ):
+                raise UserError(
+                    _(
+                        "You cannot reset a posted expense sheet to draft because an accounting entry is already linked."
+                    )
+                )
+
+    def _get_reset_to_draft_clear_vals(self):
+        self.ensure_one()
+        return {
+            "state": "draft",
+            "approval_date": False,
+            "accounting_date": False,
+            "returned_for_resubmission": False,
+            "return_reason": False,
+            "returned_by": False,
+            "returned_on": False,
+            "returned_tier": False,
+            "cash_tracking_state": "not_applicable",
+            "cash_paid_date": False,
+            "cash_paid_by": False,
+            "cash_reference": False,
+            "cash_note": False,
         }
 
     def _notify_cash_tracking_returned(self):
@@ -185,47 +271,39 @@ class HrExpenseSheet(models.Model):
                 )
             sheet.message_post(body=body)
 
-    def action_reset_to_draft_by_manager(self):
+    def action_reset_to_draft_by_manager(self, reason):
         self.ensure_one()
-        if not self.user_has_groups("hr_expense.group_hr_expense_manager"):
+        if not reason or not reason.strip():
             raise UserError(
-                _("Only expense managers can reset this expense sheet to draft.")
-            )
-        if self.state == "post":
-            raise UserError(
-                _("You cannot reset a posted expense sheet to draft.")
-            )
-        if self.state == "draft":
-            raise UserError(_("This expense sheet is already in draft."))
-        if self.cash_tracking_state == "cash_reimbursed":
-            raise UserError(
-                _("You cannot reset an expense sheet after cash reimbursement.")
-            )
-        if self.state not in ("submit", "approve"):
-            raise UserError(
-                _("Only submitted or approved expense sheets can be reset to draft.")
+                _(
+                    "Please provide a reason before resetting this expense sheet to draft."
+                )
             )
 
+        previous_state = self.state
+        had_reviews = bool(self.review_ids)
+        had_cash_reimbursed = self.cash_tracking_state == "cash_reimbursed"
+        actor_name = self.env.user.display_name
         author_id = self.env.user.partner_id.id
-        self.write(
-            {
-                "state": "draft",
-                "returned_for_resubmission": False,
-                "return_reason": False,
-                "returned_by": False,
-                "returned_on": False,
-                "returned_tier": False,
-                "cash_tracking_state": "not_applicable",
-                "cash_paid_date": False,
-                "cash_paid_by": False,
-                "cash_reference": False,
-                "cash_note": False,
-            }
-        )
-        if self.review_ids:
+
+        self._check_reset_to_draft_by_manager_allowed()
+        self.write(self._get_reset_to_draft_clear_vals())
+
+        if had_reviews:
             self.restart_validation()
+        self.activity_update()
+
+        body = _(
+            "Expense sheet has been reset to draft by manager.<br/>Actor: %s<br/>Previous state: %s<br/>Reason: %s"
+        ) % (actor_name, previous_state, reason.strip())
+        if had_cash_reimbursed:
+            body = "%s<br/>%s" % (
+                body,
+                _("Cash reimbursement data cleared."),
+            )
+
         self.message_post(
-            body=_("Expense sheet has been reset to draft by manager."),
+            body=body,
             author_id=author_id,
         )
         return True
@@ -238,6 +316,18 @@ class HrExpenseSheet(models.Model):
             raise UserError(
                 _("Only authorized finance users can mark cash reimbursement.")
             )
+        if self.state not in ("approve", "post", "done"):
+            raise UserError(
+                _(
+                    "You can only mark cash reimbursement after the expense sheet has been approved."
+                )
+            )
+        if self.payment_mode != "own_account":
+            raise UserError(
+                _("Only employee-paid expense sheets can be marked as cash reimbursed.")
+            )
+        if self.cash_tracking_state == "cash_reimbursed":
+            raise UserError(_("This expense sheet is already marked as cash reimbursed."))
         author_id = self.env.user.partner_id.id
         sudo_self = self.sudo()
         sudo_self.write(
