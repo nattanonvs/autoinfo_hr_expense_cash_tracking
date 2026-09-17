@@ -11,10 +11,10 @@
 ตัวอย่างคำสั่ง:
 
 ```bash
-sudo systemctl stop odoo15
+sudo systemctl stop odoo
 cd /var/odoo/odoo15
-./odoo-bin -c /etc/odoo.conf -d <database_name> -u autoinfo_hr_expense_cash_tracking --stop-after-init
-sudo systemctl start odoo15
+python3 /var/odoo/odoo15/odoo-bin -c /etc/odoo/odoo.conf -d <database_name> -u autoinfo_hr_expense_cash_tracking --stop-after-init
+sudo systemctl start odoo
 ```
 
 ## การรัน test แบบใช้ซ้ำ
@@ -39,7 +39,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run_odoo_tests.ps1 -TagSet al
 
 หมายเหตุ:
 
-- สคริปต์นี้ใช้ Odoo runtime ที่ `C:\odoo\odoo-15.0`
+- สคริปต์นี้ใช้ Odoo runtime ที่ `/var/odoo/odoo15`
 - สคริปต์จะสร้างและลบฐานทดสอบให้อัตโนมัติ
 - ถ้าต้องการเก็บฐานไว้ตรวจต่อ ให้เพิ่ม `-KeepDb`
 
@@ -114,8 +114,9 @@ logic ที่เกี่ยวข้อง:
 - `action_submit_sheet()` เรียก validation ของ analytic account และ category mapping ก่อนส่ง
 - `action_request_cash_tracking_validation()` reset รอบเอกสารถูกตีกลับ
 - `action_open_reset_to_draft_reason_wizard()` เปิด wizard สำหรับกรอกเหตุผลก่อน reset
-- `action_reset_to_draft_by_manager(reason)` เป็น backend หลักที่ตรวจสิทธิ์, ตรวจ state, ตรวจ `account_move_id` และล้างข้อมูล cash tracking/return cycle
+- `action_reset_to_draft_by_manager(reason)` เป็น backend หลักที่ตรวจสิทธิ์, ตรวจ state, ตรวจ `account_move_id`/`payment_state` และล้างข้อมูล cash tracking/return cycle
 - กรณี `post` จะ reset ได้เฉพาะตอน `account_move_id` ยังว่าง
+- กรณี `done` จะ reset ได้เฉพาะตอน `payment_state = not_paid`; ถ้ามี `account_move_id` ระบบจะเรียก `action_unpost()` ก่อนแล้วค่อย clear state ของเอกสาร
 - หลัง reset สำเร็จ ระบบจะเรียก `restart_validation()` ถ้ามี `review_ids` เดิม และ post audit message ลง `Chatter`
 - `action_mark_cash_reimbursed()` บันทึกสถานะคืนเงินสดและ audit fields
 
@@ -137,7 +138,9 @@ logic ที่เกี่ยวข้อง:
 1. ถ้าไม่มี `Analytic Account` บน expense line ใด line หนึ่ง จะ submit sheet ไม่ได้
 2. ถ้าเลือก `Expense Category` แล้วไม่มี `product_id` หรือ `product_id` ไม่ตรงกับ mapping จะ submit sheet ไม่ได้
 3. ถ้า Tier Validation ยังไม่ครบ จะ approve/post ต่อไม่ได้
-4. ปุ่ม `Reset to Draft` ใช้ได้เฉพาะ `Expense Manager`; ปุ่มจะแสดงเมื่อเอกสารอยู่ที่ `submit`, `approve` หรือ `post`, ต้องกรอกเหตุผลผ่าน wizard และถ้าเอกสารอยู่ที่ `post` จะยืนยัน reset ผ่านได้เฉพาะใบที่ยังไม่มี `account_move_id`
+4. ปุ่ม `Reset to Draft` ใช้ได้เฉพาะ `Expense Manager`; ปุ่มจะแสดงเมื่อเอกสารอยู่ที่ `submit`, `approve`, `post` หรือ `done` ที่ยัง `not_paid`
+5. ถ้าเอกสารอยู่ที่ `post` จะยืนยัน reset ผ่านได้เฉพาะใบที่ยังไม่มี `account_move_id`
+6. ถ้าเอกสารอยู่ที่ `done` ปุ่มจะไม่แสดงเมื่อ `payment_state` ไม่ใช่ `not_paid`
 
 ## Security และเมนู
 
@@ -159,7 +162,7 @@ logic ที่เกี่ยวข้อง:
 - `tests/test_expense_employee_ux.py`
   ครอบคลุม category mapping, visibility ตาม group, config action และ regression เชื่อม UX ใหม่กับ cash tracking default
 - `tests/test_expense_cash_tracking_flow.py`
-  ครอบคลุม analytic account gate, validation gate, return flow, reset to draft, posted/no-account-move regression, reimbursement และ wizard actions
+  ครอบคลุม analytic account gate, validation gate, return flow, reset to draft, posted/no-account-move regression, done+not_paid reset regression, reimbursement และ wizard actions
 - `tests/test_expense_cash_tracking_security.py`
   ครอบคลุม visibility ของ sheet ตามกลุ่มสิทธิ์
 - `tests/test_expense_cash_tracking_xlsx.py`
@@ -179,3 +182,6 @@ logic ที่เกี่ยวข้อง:
 Development Team: The Auto-Info Co., Ltd. : Dev Team / Mr. Nattanon Vinyangkoon - Project conception, implementation, and thorough review of all deliverables.
 
 AI Coding Assistant: TRAE SOLO / MICROSOFT 365 COPILOT - Utilized to support code generation and productivity improvements under human oversight.
+
+
+

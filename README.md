@@ -16,7 +16,9 @@
 - เพิ่ม `Expense Category` สำหรับพนักงาน และ map ไป `product` อัตโนมัติ
 - ซ่อน `product_id` จากผู้ใช้พนักงานทั่วไป แต่ยังให้บัญชีและผู้จัดการเห็นข้อมูลจริง
 - บล็อกการ submit ถ้า mapping ของ `Expense Category` ไม่ครบหรือมีการเปลี่ยน `product` ไม่ตรง mapping
-- ปุ่ม `Reset to Draft` แสดงสำหรับ `Expense Manager` เมื่อเอกสารอยู่ที่ `submit`, `approve` หรือ `post`; ถ้าเอกสารอยู่ที่ `post` การยืนยัน reset จะผ่านได้เฉพาะใบที่ยังไม่มี `account_move_id`
+- ปุ่ม `Reset to Draft` แสดงสำหรับ `Expense Manager` เมื่อเอกสารอยู่ที่ `submit`, `approve`, `post` หรือ `done` ที่ยัง `not_paid`
+- ถ้าเอกสารอยู่ที่ `post` การยืนยัน reset จะผ่านได้เฉพาะใบที่ยังไม่มี `account_move_id`
+- ถ้าเอกสารอยู่ที่ `done` และยัง `not_paid` ระบบจะย้อน accounting move กลับก่อน แล้วค่อยพาเอกสารกลับไป `draft`
 - ส่งออก Excel ได้ทั้งแบบรายใบและสรุปหลายใบ
 
 ## ขอบเขตการทำงาน
@@ -55,10 +57,10 @@
 ตัวอย่างคำสั่ง:
 
 ```bash
-sudo systemctl stop odoo15
+sudo systemctl stop odoo
 cd /var/odoo/odoo15
-./odoo-bin -c /etc/odoo.conf -d <database_name> -u autoinfo_hr_expense_cash_tracking --stop-after-init
-sudo systemctl start odoo15
+python3 /var/odoo/odoo15/odoo-bin -c /etc/odoo/odoo.conf -d <database_name> -u autoinfo_hr_expense_cash_tracking --stop-after-init
+sudo systemctl start odoo
 ```
 
 ## การตั้งค่าหลังติดตั้ง
@@ -94,7 +96,12 @@ AI Coding Assistant: TRAE SOLO / MICROSOFT 365 COPILOT - Utilized to support cod
 - เพิ่ม wizard `Reset to Draft` ที่บังคับกรอกเหตุผลและบันทึก audit ลง `Chatter`
 - แสดงปุ่ม `Reset to Draft` ให้ `Expense Manager` ในสถานะ `submit`, `approve` และ `post` และบล็อกการยืนยันสำหรับ `post` ที่มี `account_move_id`
 - ล้างข้อมูลรอบตีกลับ, วันที่/ข้อมูลคืนเงินสดเดิม และเปิดให้ขอ `Tier Validation` รอบใหม่
+- `2026-09-17`
+- ขยาย `Reset to Draft` ให้รองรับเอกสารสถานะ `done` ที่ `payment_state = not_paid`
+- ปรับ view ให้ปุ่ม `Reset to Draft` แสดงใน `done` เฉพาะกรณียังไม่จ่าย และเพิ่ม regression test ของ flow นี้
 - `2026-09-10`
 - เพิ่ม `Expense Category` และ simplified employee form ตามสถานะโค้ดจริง
 - ปรับ README และคู่มือให้สะท้อนสิทธิ์การมองเห็นและ validation ปัจจุบัน
 - ตรวจ full regression ของ `expense_employee_ux`, `expense_cash_tracking_flow`, `expense_cash_tracking_security`, และ `expense_cash_tracking_xlsx`
+
+

@@ -211,6 +211,10 @@ class HrExpenseSheet(models.Model):
         self.ensure_one()
         return bool(self.account_move_id)
 
+    def _is_done_not_paid_resettable(self):
+        self.ensure_one()
+        return self.state == "done" and self.payment_state == "not_paid"
+
     def _check_reset_to_draft_by_manager_allowed(self, check_account_move=True):
         for sheet in self:
             if not sheet.user_has_groups("hr_expense.group_hr_expense_manager"):
@@ -219,10 +223,10 @@ class HrExpenseSheet(models.Model):
                 )
             if sheet.state == "draft":
                 raise UserError(_("This expense sheet is already in draft."))
-            if sheet.state not in ("submit", "approve", "post"):
+            if sheet.state not in ("submit", "approve", "post") and not sheet._is_done_not_paid_resettable():
                 raise UserError(
                     _(
-                        "Only submitted, approved, or safely posted expense sheets can be reset to draft."
+                        "Only submitted, approved, safely posted, or done but not yet paid expense sheets can be reset to draft."
                     )
                 )
             if (
@@ -287,6 +291,9 @@ class HrExpenseSheet(models.Model):
         author_id = self.env.user.partner_id.id
 
         self._check_reset_to_draft_by_manager_allowed()
+        if self._is_done_not_paid_resettable() and self.account_move_id:
+            # Reverse the unpaid accounting move before clearing the sheet state.
+            self.action_unpost()
         self.write(self._get_reset_to_draft_clear_vals())
 
         if had_reviews:

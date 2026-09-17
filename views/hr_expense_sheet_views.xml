@@ -25,7 +25,7 @@
                     type="object"
                     string="Reset to Draft"
                     groups="hr_expense.group_hr_expense_manager"
-                    attrs="{'invisible': [('state', 'not in', ['submit', 'approve', 'post'])]}"
+                    attrs="{'invisible': ['|', ('state', 'not in', ['submit', 'approve', 'post', 'done']), '&amp;', ('state', '=', 'done'), ('payment_state', '!=', 'not_paid')]}"
                 />
                 <button
                     name="%(action_expense_cash_summary_xlsx_wizard)d"

@@ -14,7 +14,7 @@
 - ทุกบรรทัดต้องมี `Analytic Account` ก่อนส่งขออนุมัติ
 - ถ้า `Expense Category` map ไม่ครบ หรือ `product` ไม่ตรงกับหมวด ระบบจะ block ตอน submit
 - `Expense Sheet` รองรับรอบการตีกลับและขออนุมัติใหม่
-- ผู้จัดการ Expense กด `Reset to Draft` ได้เมื่อเอกสารอยู่ที่ `submit`, `approve` หรือ `post`
+- ผู้จัดการ Expense กด `Reset to Draft` ได้เมื่อเอกสารอยู่ที่ `submit`, `approve`, `post` หรือ `done` ที่ยัง `not_paid`
 - เมื่อกดปุ่ม ระบบจะเปิดหน้าต่างให้กรอกเหตุผลก่อนทุกครั้ง
 - ถ้าเอกสาร `post` แล้วและมี `account_move_id` ระบบจะไม่ยอมให้ reset
 - ถ้าเอกสารถูก mark ว่า `cash_reimbursed` แล้ว ระบบจะล้างข้อมูลคืนเงินสดเมื่อ reset สำเร็จ
@@ -95,6 +95,7 @@
 หมายเหตุ:
 
 - ถ้าเอกสารอยู่ที่ `post` และมี `account_move_id` ระบบจะไม่อนุญาตให้ยืนยัน reset
+- ถ้าเอกสารอยู่ที่ `done` และยัง `not_paid` ระบบจะย้อน move กลับก่อน แล้วค่อยพาเอกสารกลับไป `draft`
 - ถ้าเอกสารถูก mark ว่า `cash_reimbursed` แล้ว ระบบจะล้างข้อมูลคืนเงินสดเมื่อ reset สำเร็จ
 
 ### Accounting Reviewer
@@ -125,7 +126,9 @@
 - อย่าลบหรือเปลี่ยน `product` ของ `Expense Category` โดยไม่ประเมินผลกระทบ
 - ถ้าไม่ใส่ `Analytic Account` จะส่งเอกสารไม่ได้
 - ถ้าเอกสารถูกตีกลับ ต้องแก้ไขแล้วส่งใหม่
-- ปุ่ม `Reset to Draft` ไม่แสดงเมื่อเอกสารยังเป็น `draft`; ถ้าเอกสารอยู่ที่ `post` ปุ่มยังแสดงได้ แต่จะยืนยัน reset ไม่ผ่านเมื่อมี `account_move_id`
+- ปุ่ม `Reset to Draft` ไม่แสดงเมื่อเอกสารยังเป็น `draft`
+- ถ้าเอกสารอยู่ที่ `post` ปุ่มยังแสดงได้ แต่จะยืนยัน reset ไม่ผ่านเมื่อมี `account_move_id`
+- ถ้าเอกสารอยู่ที่ `done` ปุ่มจะแสดงเฉพาะตอน `payment_state` ยังเป็น `not_paid`
 - ผู้ใช้ทั่วไปจะไม่เห็น `Expense Category` configuration
 
 ## 10. ถ้ามีปัญหา
@@ -134,10 +137,11 @@
 2. ถ้า submit ไม่ผ่าน ให้เช็กว่า `Expense Category` ถูกผูก `product` แล้วหรือไม่
 3. ถ้าฝ่ายบัญชีเห็น `product` ไม่ตรงหมวด ให้แก้ mapping หรือแก้รายการก่อนส่งใหม่
 4. ถ้าไม่เห็นไฟล์ Excel ให้เช็กว่า `report_xlsx` ติดตั้งแล้ว
-5. ถ้าไม่เห็นปุ่ม `Reset to Draft` ให้เช็กสถานะเอกสารและสิทธิ์ `Expense Manager`
+5. ถ้าไม่เห็นปุ่ม `Reset to Draft` ให้เช็กสถานะเอกสาร, `payment_state` และสิทธิ์ `Expense Manager`
 
 ## Credits
 
 Development Team: The Auto-Info Co., Ltd. : Dev Team / Mr. Nattanon Vinyangkoon - Project conception, implementation, and thorough review of all deliverables.
 
 AI Coding Assistant: TRAE SOLO / MICROSOFT 365 COPILOT - Utilized to support code generation and productivity improvements under human oversight.
+

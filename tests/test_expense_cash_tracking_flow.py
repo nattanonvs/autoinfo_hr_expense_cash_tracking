@@ -315,6 +315,25 @@ class TestExpenseCashTrackingFlow(TransactionCase):
         self.assertEqual(action["res_model"], "expense.reset.to.draft.reason.wizard")
         self.assertEqual(action["context"]["default_sheet_id"], sheet.id)
 
+    def test_reset_wizard_open_allows_done_sheet_when_not_paid(self):
+        expense = self._create_expense()
+        sheet = self._make_sheet(
+            expense,
+            state="done",
+            journal_id=self.expense_journal.id,
+            cash_tracking_state="waiting_cash_reimbursement",
+        )
+        sheet.invalidate_cache()
+
+        self.assertEqual(sheet.payment_state, "not_paid")
+        self.assertEqual(sheet.cash_tracking_state, "waiting_cash_reimbursement")
+
+        action = sheet.with_user(self.manager_user).action_open_reset_to_draft_reason_wizard()
+
+        self.assertEqual(action["type"], "ir.actions.act_window")
+        self.assertEqual(action["res_model"], "expense.reset.to.draft.reason.wizard")
+        self.assertEqual(action["context"]["default_sheet_id"], sheet.id)
+
     def test_reset_wizard_acl_blocks_direct_create_for_non_manager(self):
         expense = self._create_expense()
         sheet = self._make_sheet(expense, state="submit")
@@ -416,6 +435,33 @@ class TestExpenseCashTrackingFlow(TransactionCase):
 
         self.assertEqual(sheet.state, "draft")
         self.assertFalse(sheet.account_move_id)
+
+    def test_manager_can_reset_done_not_paid_sheet_to_draft(self):
+        expense = self._create_expense()
+        sheet = self._make_sheet(
+            expense,
+            state="done",
+            journal_id=self.expense_journal.id,
+            cash_tracking_state="waiting_cash_reimbursement",
+        )
+
+        self.assertEqual(sheet.payment_state, "not_paid")
+
+        wizard = self._create_reset_wizard(
+            sheet,
+            reason="Done but still waiting for cash reimbursement",
+            user=self.manager_user,
+        )
+        action = wizard.action_confirm()
+        sheet.invalidate_cache()
+
+        self.assertEqual(action, {"type": "ir.actions.act_window_close"})
+        self.assertEqual(sheet.state, "draft")
+        self.assertEqual(sheet.cash_tracking_state, "not_applicable")
+        self.assertFalse(sheet.cash_paid_date)
+        self.assertFalse(sheet.cash_paid_by)
+        self.assertFalse(sheet.cash_reference)
+        self.assertFalse(sheet.cash_note)
 
     def test_posted_reset_clears_accounting_and_reimbursement_audit_fields(self):
         expense = self._create_expense()
@@ -661,9 +707,11 @@ class TestExpenseCashTrackingFlow(TransactionCase):
         ]
         self.assertTrue(state_conditions)
         self.assertIn(
-            ("state", "not in", ["submit", "approve", "post"]),
+            ("state", "not in", ["submit", "approve", "post", "done"]),
             state_conditions,
         )
+        self.assertIn(("state", "=", "done"), invisible_attrs)
+        self.assertIn(("payment_state", "!=", "not_paid"), invisible_attrs)
 
     def test_mark_cash_reimbursed_sets_audit_fields_and_posts_notification(self):
         expense = self._create_expense()
