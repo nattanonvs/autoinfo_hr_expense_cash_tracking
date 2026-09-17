@@ -18,6 +18,7 @@ class ExpenseReturnReasonWizard(models.TransientModel):
 
     def action_confirm(self):
         self.ensure_one()
+        self.sheet_id._check_return_reason_wizard_allowed()
         self.sheet_id.write(
             {
                 "state": "draft",

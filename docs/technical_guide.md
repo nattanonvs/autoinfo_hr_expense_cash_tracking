@@ -35,7 +35,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run_odoo_tests.ps1 -TagSet al
 1. `flow` ใช้เช็ก flow หลักของ cash tracking และ reset to draft
 2. `security` ใช้เช็กสิทธิ์การมองเห็นเอกสาร
 3. `xlsx` ใช้เช็กการ export Excel
-4. `all` ใช้ติดตั้งโมดูลแล้วรัน test ของโมดูลทั้งหมดในรอบเดียว
+4. `all` ใช้ติดตั้งโมดูลแล้วรัน test ของโมดูลทั้งหมดในรอบเดียว โดยรวม `expense_employee_ux`, `expense_cash_tracking_flow`, `expense_cash_tracking_security` และ `expense_cash_tracking_xlsx`
 
 หมายเหตุ:
 
@@ -56,7 +56,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run_odoo_tests.ps1 -TagSet al
 - `models/expense_category.py`
   เก็บ master data ของ `Expense Category` และ mapping ไป `product.product`
 - `models/hr_expense_sheet.py`
-  ตรวจ analytic account, ตรวจ category mapping ตอน submit, เก็บสถานะคืนเงินสด และจัดการ return cycle
+  ตรวจ analytic account, ตรวจ category mapping ตอน submit, เก็บสถานะคืนเงินสด และจัดการ return/reset cycle
 - `models/expense_approval_delegate.py`
   ใช้ resolve ผู้แทนอนุมัติ
 - `models/expense_approval_role.py`
@@ -67,6 +67,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run_odoo_tests.ps1 -TagSet al
   เพิ่ม tree/form/action/menu สำหรับตั้งค่า `Expense Category`
 - `wizard/expense_return_reason_wizard.py`
   ใช้ตีกลับเอกสารพร้อมเหตุผล
+- `wizard/expense_reset_to_draft_reason_wizard.py`
+  ใช้เก็บเหตุผลก่อนให้ผู้จัดการ reset เอกสารกลับไป `draft`
 - `wizard/expense_cash_summary_xlsx_wizard.py`
   ใช้เลือกช่วงวันที่ก่อน export Excel
 - `reports/expense_cash_detail_xlsx.py`
@@ -111,7 +113,10 @@ logic ที่เกี่ยวข้อง:
 - `_check_all_lines_have_valid_expense_category_mapping()`
 - `action_submit_sheet()` เรียก validation ของ analytic account และ category mapping ก่อนส่ง
 - `action_request_cash_tracking_validation()` reset รอบเอกสารถูกตีกลับ
-- `action_reset_to_draft_by_manager()` ให้ผู้จัดการดึงเอกสารจาก `submit` หรือ `approve` กลับไป `draft`
+- `action_open_reset_to_draft_reason_wizard()` เปิด wizard สำหรับกรอกเหตุผลก่อน reset
+- `action_reset_to_draft_by_manager(reason)` เป็น backend หลักที่ตรวจสิทธิ์, ตรวจ state, ตรวจ `account_move_id` และล้างข้อมูล cash tracking/return cycle
+- กรณี `post` จะ reset ได้เฉพาะตอน `account_move_id` ยังว่าง
+- หลัง reset สำเร็จ ระบบจะเรียก `restart_validation()` ถ้ามี `review_ids` เดิม และ post audit message ลง `Chatter`
 - `action_mark_cash_reimbursed()` บันทึกสถานะคืนเงินสดและ audit fields
 
 ## พฤติกรรมของฟอร์มตามสิทธิ์
@@ -132,7 +137,7 @@ logic ที่เกี่ยวข้อง:
 1. ถ้าไม่มี `Analytic Account` บน expense line ใด line หนึ่ง จะ submit sheet ไม่ได้
 2. ถ้าเลือก `Expense Category` แล้วไม่มี `product_id` หรือ `product_id` ไม่ตรงกับ mapping จะ submit sheet ไม่ได้
 3. ถ้า Tier Validation ยังไม่ครบ จะ approve/post ต่อไม่ได้
-4. ปุ่ม `Reset to Draft` ใช้ได้เฉพาะ `Expense Manager` และใช้ได้เฉพาะตอนเอกสารอยู่ที่ `submit` หรือ `approve`
+4. ปุ่ม `Reset to Draft` ใช้ได้เฉพาะ `Expense Manager`; ปุ่มจะแสดงเมื่อเอกสารอยู่ที่ `submit`, `approve` หรือ `post`, ต้องกรอกเหตุผลผ่าน wizard และถ้าเอกสารอยู่ที่ `post` จะยืนยัน reset ผ่านได้เฉพาะใบที่ยังไม่มี `account_move_id`
 
 ## Security และเมนู
 
@@ -154,7 +159,7 @@ logic ที่เกี่ยวข้อง:
 - `tests/test_expense_employee_ux.py`
   ครอบคลุม category mapping, visibility ตาม group, config action และ regression เชื่อม UX ใหม่กับ cash tracking default
 - `tests/test_expense_cash_tracking_flow.py`
-  ครอบคลุม analytic account gate, validation gate, return flow, reset to draft, reimbursement และ wizard actions
+  ครอบคลุม analytic account gate, validation gate, return flow, reset to draft, posted/no-account-move regression, reimbursement และ wizard actions
 - `tests/test_expense_cash_tracking_security.py`
   ครอบคลุม visibility ของ sheet ตามกลุ่มสิทธิ์
 - `tests/test_expense_cash_tracking_xlsx.py`

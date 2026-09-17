@@ -238,7 +238,7 @@ class TestExpenseEmployeeUx(TransactionCase):
         self.assertEqual(form_view.model, "autoinfo.expense.category")
         self.assertIn('<field name="note"/>', form_view.arch_db)
 
-    def test_expense_category_access_is_limited_to_managers(self):
+    def test_expense_category_access_allows_read_for_expense_users_only(self):
         manager_model = self.env["autoinfo.expense.category"].with_user(self.manager_user)
         employee_model = self.env["autoinfo.expense.category"].with_user(
             self.employee_user
@@ -248,11 +248,14 @@ class TestExpenseEmployeeUx(TransactionCase):
         self.assertTrue(
             manager_model.check_access_rights("create", raise_exception=False)
         )
-        self.assertFalse(
+        self.assertTrue(
             employee_model.check_access_rights("read", raise_exception=False)
         )
         self.assertFalse(
             employee_model.check_access_rights("create", raise_exception=False)
+        )
+        self.assertFalse(
+            employee_model.check_access_rights("write", raise_exception=False)
         )
 
         manager_category = manager_model.create(
@@ -264,6 +267,10 @@ class TestExpenseEmployeeUx(TransactionCase):
             }
         )
         self.assertTrue(manager_category)
+        self.assertEqual(
+            employee_model.search([("id", "=", manager_category.id)]),
+            manager_category,
+        )
 
         with self.assertRaises(AccessError):
             employee_model.create(
