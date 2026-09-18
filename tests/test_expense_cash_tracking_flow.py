@@ -59,12 +59,47 @@ class TestExpenseCashTrackingFlow(TransactionCase):
             "expense_cash_finance",
             "autoinfo_hr_expense_cash_tracking.group_expense_cash_reimbursement_manager",
         )
+        cls.second_head_user = cls._create_user(
+            "Expense Cash Second Department Head User",
+            "expense_cash_second_head",
+            "hr_expense.group_hr_expense_user",
+            "hr_expense.group_hr_expense_team_approver",
+        )
+        cls.department_head_employee = cls.env["hr.employee"].create(
+            {
+                "name": "Expense Cash Department Head",
+                "company_id": cls.env.company.id,
+                "user_id": cls.manager_user.id,
+            }
+        )
+        cls.second_department_head_employee = cls.env["hr.employee"].create(
+            {
+                "name": "Expense Cash Second Department Head",
+                "company_id": cls.env.company.id,
+                "user_id": cls.second_head_user.id,
+            }
+        )
+        cls.department = cls.env["hr.department"].create(
+            {
+                "name": "Expense Cash Tracking Department",
+                "manager_id": cls.department_head_employee.id,
+                "company_id": cls.env.company.id,
+            }
+        )
+        cls.second_department = cls.env["hr.department"].create(
+            {
+                "name": "Expense Cash Tracking Department 2",
+                "manager_id": cls.second_department_head_employee.id,
+                "company_id": cls.env.company.id,
+            }
+        )
         cls.employee = cls.env["hr.employee"].create(
             {
                 "name": "Expense Cash Tracking Employee",
                 "company_id": cls.env.company.id,
                 "user_id": cls.employee_user.id,
                 "expense_manager_id": cls.manager_user.id,
+                "department_id": cls.department.id,
             }
         )
         cls.expense_product = cls.env["product.product"].create(
@@ -223,6 +258,32 @@ class TestExpenseCashTrackingFlow(TransactionCase):
 
         self.assertTrue(sheet.review_ids)
         self.assertFalse(sheet.validated)
+
+    def test_request_validation_uses_selected_department_head_for_manager_review(self):
+        expense = self._create_expense()
+        sheet = self._make_sheet(expense)
+        sheet.department_head_user_id = self.second_head_user
+
+        sheet.request_validation()
+
+        self.assertEqual(sheet.review_ids.reviewer_ids, self.second_head_user)
+
+    def test_request_validation_falls_back_to_definition_reviewer_when_field_empty(self):
+        expense = self._create_expense()
+        sheet = self._make_sheet(expense)
+        sheet.department_head_user_id = False
+
+        sheet.request_validation()
+
+        self.assertEqual(sheet.review_ids.reviewer_ids, self.manager_user)
+
+    def test_request_cash_tracking_validation_rejects_blank_department_head(self):
+        expense = self._create_expense()
+        sheet = self._make_sheet(expense, state="submit")
+        sheet.department_head_user_id = False
+
+        with self.assertRaises(UserError):
+            sheet.action_request_cash_tracking_validation()
 
     def test_return_for_resubmission_records_reason_and_tier(self):
         expense = self._create_expense()
@@ -665,6 +726,47 @@ class TestExpenseCashTrackingFlow(TransactionCase):
         self.assertIn('name="action_open_return_reason_wizard"', view.arch_db)
         self.assertIn('name="action_mark_cash_reimbursed"', view.arch_db)
         self.assertIn('name="cash_tracking_state"', view.arch_db)
+
+    def test_sheet_department_head_defaults_from_employee_department_manager(self):
+        expense = self._create_expense()
+        sheet = self._make_sheet(expense)
+
+        self.assertEqual(sheet.department_head_user_id, self.manager_user)
+        self.assertIn(self.manager_user, sheet.department_head_user_ids)
+        self.assertIn(self.second_head_user, sheet.department_head_user_ids)
+
+        sheet.department_head_user_id = self.second_head_user
+        self.assertEqual(sheet.department_head_user_id, self.second_head_user)
+
+    def test_sheet_form_places_department_head_after_user_id(self):
+        view = self.env.ref(
+            "autoinfo_hr_expense_cash_tracking.view_hr_expense_sheet_form_cash_tracking"
+        )
+        arch = view.get_combined_arch()
+        root = etree.fromstring(arch)
+
+        self.assertTrue(root.xpath(".//field[@name='department_head_user_id']"))
+        self.assertTrue(
+            root.xpath(
+                ".//field[@name='user_id']/following-sibling::field[@name='department_head_user_id']"
+            )
+        )
+
+    def test_sheet_form_hides_request_validation_during_active_tier_review(self):
+        view = self.env.ref(
+            "autoinfo_hr_expense_cash_tracking.view_hr_expense_sheet_form_cash_tracking"
+        )
+        arch = view.get_combined_arch()
+        root = etree.fromstring(arch)
+        buttons = root.xpath(".//button[@name='action_request_cash_tracking_validation']")
+
+        self.assertEqual(len(buttons), 1)
+        attrs = ast.literal_eval(buttons[0].get("attrs") or "{}")
+        invisible_attrs = attrs.get("invisible", [])
+        self.assertIn(("need_validation", "=", True), invisible_attrs)
+        self.assertIn(("review_ids", "!=", []), invisible_attrs)
+        self.assertIn(("validated", "=", False), invisible_attrs)
+        self.assertIn(("department_head_user_id", "=", False), invisible_attrs)
 
     def test_sheet_form_limits_return_button_to_reviewer_groups(self):
         view = self.env.ref(

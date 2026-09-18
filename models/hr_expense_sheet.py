@@ -1,10 +1,20 @@
-from odoo import _, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 
 class HrExpenseSheet(models.Model):
     _inherit = "hr.expense.sheet"
 
+    department_head_user_id = fields.Many2one(
+        "res.users",
+        string="Department Head",
+        tracking=True,
+        domain="[('id', 'in', department_head_user_ids)]",
+    )
+    department_head_user_ids = fields.Many2many(
+        "res.users",
+        copy=False,
+    )
     reimbursement_method = fields.Selection(
         [("petty_cash", "Petty Cash"), ("bank_transfer", "Bank Transfer")],
         default="petty_cash",
@@ -36,6 +46,52 @@ class HrExpenseSheet(models.Model):
         tracking=True,
         copy=False,
     )
+
+    @api.model
+    def _get_department_head_user_from_employee(self, employee):
+        if not employee:
+            return self.env["res.users"]
+        return employee.department_id.manager_id.user_id
+
+    @api.model
+    def _get_department_head_user_candidates(self):
+        return (
+            self.env["hr.department"]
+            .sudo()
+            .search([])
+            .mapped("manager_id.user_id")
+            .filtered(lambda user: user)
+        )
+
+    @api.onchange("employee_id")
+    def _onchange_employee_id_department_head_user_id(self):
+        department_head_users = self._get_department_head_user_candidates()
+        for sheet in self:
+            sheet.department_head_user_ids = [(6, 0, department_head_users.ids)]
+            if not sheet.employee_id:
+                sheet.department_head_user_id = False
+                continue
+            default_head_user = sheet._get_department_head_user_from_employee(
+                sheet.employee_id
+            )
+            if default_head_user:
+                sheet.department_head_user_id = default_head_user
+            elif sheet.department_head_user_id not in sheet.department_head_user_ids:
+                sheet.department_head_user_id = False
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        department_head_users = self._get_department_head_user_candidates()
+        for vals in vals_list:
+            if not vals.get("department_head_user_ids"):
+                vals["department_head_user_ids"] = [(6, 0, department_head_users.ids)]
+            if vals.get("department_head_user_id") or not vals.get("employee_id"):
+                continue
+            employee = self.env["hr.employee"].browse(vals["employee_id"])
+            default_head_user = self._get_department_head_user_from_employee(employee)
+            if default_head_user:
+                vals["department_head_user_id"] = default_head_user.id
+        return super().create(vals_list)
 
     def _check_all_lines_have_analytic_account(self):
         self.mapped("expense_line_ids")._check_cash_tracking_analytic_account()
@@ -88,13 +144,17 @@ class HrExpenseSheet(models.Model):
         self._check_all_lines_have_valid_expense_category_mapping()
         return super().action_submit_sheet()
 
-    def _get_cash_tracking_primary_reviewer(self):
+    def _get_cash_tracking_primary_reviewer_base_user(self):
         self.ensure_one()
-        base_user = (
+        return (
             self.employee_id.expense_manager_id
             or self.employee_id.parent_id.user_id
             or self.employee_id.department_id.manager_id.user_id
         )
+
+    def _get_cash_tracking_primary_reviewer(self):
+        self.ensure_one()
+        base_user = self._get_cash_tracking_primary_reviewer_base_user()
         if not base_user:
             return self.env["res.users"]
 
@@ -106,6 +166,20 @@ class HrExpenseSheet(models.Model):
             fields.Date.context_today(self),
         )
         return delegate_user or base_user
+
+    def _get_tier_review_override_users(self, review, default_reviewers):
+        self.ensure_one()
+        if not self.department_head_user_id:
+            return default_reviewers
+        if review.review_type != "individual":
+            return default_reviewers
+        if review.reviewer_group_id or review.reviewer_field_id:
+            return default_reviewers
+
+        base_reviewer = self._get_cash_tracking_primary_reviewer_base_user()
+        if base_reviewer and review.reviewer_id == base_reviewer:
+            return self.department_head_user_id
+        return default_reviewers
 
     def _check_cash_tracking_validation_gate(self):
         blocked_sheets = self.filtered(
@@ -128,6 +202,13 @@ class HrExpenseSheet(models.Model):
         return super().action_sheet_move_create()
 
     def action_request_cash_tracking_validation(self):
+        self.ensure_one()
+        if not self.department_head_user_id:
+            raise UserError(
+                _(
+                    "Please select Department Head before requesting validation."
+                )
+            )
         self.write(
             {
                 "returned_for_resubmission": False,

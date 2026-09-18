@@ -6,12 +6,15 @@
         <field name="inherit_id" ref="hr_expense.view_hr_expense_sheet_form"/>
         <field name="arch" type="xml">
             <xpath expr="//header" position="inside">
+                <field name="need_validation" invisible="1"/>
+                <field name="validated" invisible="1"/>
+                <field name="review_ids" invisible="1"/>
                 <button
                     name="action_request_cash_tracking_validation"
                     type="object"
                     string="Request Validation"
                     class="oe_highlight"
-                    attrs="{'invisible': [('state', '!=', 'draft')]}"
+                    attrs="{'invisible': ['|', '|', '|', ('state', '!=', 'draft'), ('department_head_user_id', '=', False), ('need_validation', '=', True), '&amp;', ('review_ids', '!=', []), ('validated', '=', False)]}"
                 />
                 <button
                     name="action_open_return_reason_wizard"
@@ -39,6 +42,13 @@
                     string="Mark Cash Reimbursed"
                     groups="autoinfo_hr_expense_cash_tracking.group_expense_cash_reimbursement_manager"
                     attrs="{'invisible': ['|', '|', ('cash_tracking_state', '=', 'cash_reimbursed'), ('state', 'not in', ['approve', 'post', 'done']), ('payment_mode', '!=', 'own_account')]}"
+                />
+            </xpath>
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="department_head_user_ids" invisible="1"/>
+                <field
+                    name="department_head_user_id"
+                    options="{'no_create_edit': True}"
                 />
             </xpath>
             <xpath expr="//sheet/group" position="after">
