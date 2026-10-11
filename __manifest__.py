@@ -1,6 +1,6 @@
 {
     "name": "AUTO-INFO : HR Expense Cash Tracking",
-    "version": "15.0.1.2.0",
+    "version": "15.0.1.3.0",
     "category": "AUTO-INFO : ERP Expenses",
     "summary": "Expense cash reimbursement with Expense Category UX simplification and XLSX exports",
     "author": "Odoo S.A., Dataroot Asia Co., Ltd., The Auto-Info Co., Ltd.",
@@ -29,6 +29,12 @@
         "views/hr_expense_views.xml",
         "views/hr_expense_sheet_views.xml",
     ],
+    "assets": {
+        "web.assets_backend": [
+            "autoinfo_hr_expense_cash_tracking/static/src/js/tours/expense_employee_tour.js",
+            "autoinfo_hr_expense_cash_tracking/static/src/js/tours/expense_accounting_tour.js",
+        ],
+    },
     "created_by": "The Auto-Info Co., Ltd. : Dev Team / Mr. Nattanon Vinyangkoon",
     "credits": [
         "The Auto-Info Co., Ltd. : Dev Team / Mr. Nattanon Vinyangkoon",
